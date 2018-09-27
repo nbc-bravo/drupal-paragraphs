@@ -11,10 +11,15 @@ use Drupal\field\FieldStorageConfigInterface;
 use Drupal\field\Plugin\migrate\source\d7\Field;
 use Drupal\field\Plugin\migrate\source\d7\FieldInstance;
 use Drupal\field\Plugin\migrate\source\d7\ViewMode;
+use Drupal\migrate\Plugin\MigrateSourceInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
+use Drupal\migrate\Row;
 use Drupal\migrate_drupal\Plugin\migrate\FieldMigration;
 use Drupal\paragraphs\Entity\ParagraphsType;
 use Drupal\paragraphs\Plugin\migrate\field\FieldCollection;
 use Drupal\Core\Render\Element;
+use Drupal\paragraphs\Plugin\migrate\field\Multifield;
+
 
 /**
  * Implements hook_help().
@@ -468,6 +473,7 @@ function paragraphs_migration_plugins_alter(array &$migrations) {
         // Field storage.
         if (is_a($source, Field::class)) {
           _paragraphs_migration_entity_type_adjust($migration);
+          _paragraphs_migration_adjust_cardinality($migration);
         }
 
         // Field instance.
@@ -475,6 +481,7 @@ function paragraphs_migration_plugins_alter(array &$migrations) {
           _paragraphs_migration_entity_type_adjust($migration);
           _paragraphs_migration_bundle_adjust($migration);
           $migration['migration_dependencies']['optional']['d7_field_collection_type'] = 'd7_field_collection_type';
+          $migration['migration_dependencies']['optional']['d7_multifield_type'] = 'd7_multifield_type';
           $migration['migration_dependencies']['optional']['d7_paragraphs_type'] = 'd7_paragraphs_type';
         }
       }
@@ -497,24 +504,23 @@ function paragraphs_entity_type_alter(array &$entity_types) {
 }
 
 /**
- * Remove 'field_' prefix from field collection bundles.
+ * Remove 'field_' prefix from the bundle name.
  *
  * @param array $migration
  *   The migration configuration to process.
  */
 function _paragraphs_migration_bundle_adjust(array &$migration) {
-
   if (!isset($migration['process']['bundle'])) {
     $migration['process']['bundle'] = [];
   }
 
   $bundle_process = $migration['process']['bundle'];
-
-  // Try to play nice with other modules altering this, and don't replace
-  // it outright unless it's unchanged.
-  if (array_key_exists('plugin', $bundle_process)) {
-    $bundle_process = [$bundle_process];
+  if (isset($bundle_process['paragraphs'])) {
+    return;
   }
+
+  $bundle_process = _paragraphs_make_associative($bundle_process);
+
   $bundle_process['paragraphs'] = [
     'plugin' => 'paragraphs_process_on_value',
     'source_value' => 'entity_type',
@@ -524,11 +530,20 @@ function _paragraphs_migration_bundle_adjust(array &$migration) {
       'start' => FieldCollection::FIELD_COLLECTION_PREFIX_LENGTH,
     ],
   ];
+  $bundle_process['paragraphs_multifield'] = [
+    'plugin' => 'paragraphs_process_on_value',
+    'source_value' => 'entity_type',
+    'expected_value' => 'multifield',
+    'process' => [
+      'plugin' => 'substr',
+      'start' => Multifield::PREFIX_LENGTH,
+    ],
+  ];
   $migration['process']['bundle'] = $bundle_process;
 }
 
 /**
- * Map field_collection_item and 'paragraphs_item' fields to 'paragraph'.
+ * Map field_collection_item, multifield, and paragraphs_item fields.
  *
  * @param array $migration
  *   Thei migration to process.
@@ -538,23 +553,87 @@ function _paragraphs_migration_bundle_adjust(array &$migration) {
 function _paragraphs_migration_entity_type_adjust(array &$migration, $destination = 'entity_type') {
   $entity_type_process = $migration['process'][$destination];
 
-  // Try to play with other modules altering this, and don't replace it
-  // outright unless it's unchanged.
-  if (!is_array($entity_type_process)) {
-    $entity_type_process = [
-      [
-        'plugin' => 'get',
-        'source' => 'entity_type',
-      ],
-    ];
+  if (isset($entity_type_process['paragraphs'])) {
+    return;
   }
+
+  $entity_type_process = _paragraphs_make_associative($entity_type_process);
+
   $entity_type_process['paragraphs'] = [
     'plugin' => 'static_map',
     'map' => [
       'field_collection_item' => 'paragraph',
+      'multifield' => 'paragraph',
       'paragraphs_item' => 'paragraph',
     ],
     'bypass' => TRUE,
   ];
   $migration['process'][$destination] = $entity_type_process;
+}
+
+/**
+ * Sets cardinality of multifield fields to 1.
+ *
+ * @param array $migration
+ *   The migration to process.
+ */
+function _paragraphs_migration_adjust_cardinality(array &$migration) {
+  $cardinality_process = $migration['process']['cardinality'];
+
+  if (isset($cardinality_process['paragraphs_multifield'])) {
+    return;
+  }
+
+  $cardinality_process = _paragraphs_make_associative($cardinality_process);
+  $cardinality_process['paragraphs_multifield'] = [
+    'plugin' => 'paragraphs_process_on_value',
+    'source_value' => 'entity_type',
+    'expected_value' => 'multifield',
+    'process' => [
+      'plugin' => 'static_map',
+      'map' => [
+        '-1' => '1',
+      ],
+      'bypass' => TRUE,
+    ],
+  ];
+  $migration['process']['cardinality'] = $cardinality_process;
+}
+
+
+/**
+ * Ensures that a plugin process mapping is an associative array.
+ *
+ * @param $plugin_process
+ *   The plugin process mapping.
+ * @return array
+ *   The plugin process mapping as an associative array.
+ */
+function _paragraphs_make_associative($plugin_process) {
+  if (!is_array($plugin_process)) {
+    $plugin_process = [
+      [
+        'plugin' => 'get',
+        'source' => $plugin_process,
+      ],
+    ];
+  }
+  elseif (array_key_exists('plugin', $plugin_process)) {
+    $plugin_process = [$plugin_process];
+  }
+
+  return $plugin_process;
+}
+
+/**
+ * Implements hook_migrate_prepare_row().
+ */
+function paragraphs_migrate_prepare_row(Row $row, MigrateSourceInterface $source, MigrationInterface $migration) {
+  // Skip migrating field formatter settings from multifields.
+  // These will need to be configured manually at "Manage Display".
+  if ($source->getPluginId() == 'd7_field_instance_per_view_mode') {
+    if ($row->getSourceProperty('entity_type') == 'multifield') {
+      return FALSE;
+    }
+  }
 }
