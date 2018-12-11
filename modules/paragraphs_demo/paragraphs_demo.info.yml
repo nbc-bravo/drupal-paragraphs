@@ -15,6 +15,7 @@ dependencies:
   - drupal:taxonomy
   - paragraphs:paragraphs_library
   - drupal:entity_browser
+  - drupal:content_moderation
 hidden: false
 name: Paragraphs Demo
 package: Paragraphs

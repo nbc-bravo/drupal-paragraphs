@@ -350,6 +350,133 @@ class ParagraphsExperimentalWidgetButtonsTest extends BrowserTestBase {
   }
 
   /**
+   * Tests the closed mode threshold.
+   */
+  public function testClosedModeThreshold() {
+    $this->addParagraphedContentType('paragraphed_test');
+
+    $permissions = [
+      'administer content types',
+      'administer node fields',
+      'administer paragraphs types',
+      'administer node form display',
+      'administer paragraph fields',
+      'administer paragraph form display',
+      'create paragraphed_test content',
+      'edit any paragraphed_test content',
+    ];
+    $this->loginAsAdmin($permissions, TRUE);
+
+    $this->addParagraphsType('text_paragraph');
+    $this->addFieldtoParagraphType('text_paragraph', 'field_text', 'text_long');
+
+    // Add a container Paragraph type.
+    $this->addParagraphsType('container_paragraph');
+    $this->addParagraphsField('container_paragraph', 'field_paragraphs', 'paragraph', 'paragraphs');
+
+    // Set the edit mode to "Closed".
+    $settings = [
+      'edit_mode' => 'closed',
+      'closed_mode' => 'summary',
+    ];
+
+    $this->setParagraphsWidgetSettings('container_paragraph', 'field_paragraphs', $settings, 'paragraphs', 'paragraph');
+
+    // Set the edit mode to "Closed" on the  paragraphed_test content type.
+    $settings = [
+      'edit_mode' => 'closed',
+      'closed_mode' => 'summary',
+    ];
+
+    $this->setParagraphsWidgetSettings('paragraphed_test', 'field_paragraphs', $settings);
+
+    // Check if the closed mode threshold summary is not visible.
+    $this->assertSession()->pageTextNotContains('Closed mode threshold: 1');
+
+    // Create a text paragraph
+    $text_paragraph_1 = Paragraph::create([
+      'type' => 'text_paragraph',
+      'field_text' => [
+        'value' => 'Test text 1',
+        'format' => 'plain_text',
+      ],
+    ]);
+    $text_paragraph_1->save();
+
+    // Create a node referencing to the text paragraph.
+    $node = Node::create([
+      'type' => 'paragraphed_test',
+      'title' => 'Paragraphs Test',
+      'field_paragraphs' => [$text_paragraph_1],
+    ]);
+    $node->save();
+
+    $this->drupalGet('/node/' . $node->id() . '/edit');
+
+    // Check if the text paragraph is closed.
+    $this->checkParagraphInMode('field_paragraphs_0', 'closed');
+
+    // Set the closed mode threshold to 2.
+    $settings = [
+      'closed_mode_threshold' => 2,
+    ];
+
+    $this->setParagraphsWidgetSettings('paragraphed_test', 'field_paragraphs', $settings);
+
+    $this->drupalGet('/node/' . $node->id() . '/edit');
+
+    // Check if the text paragraph is now open.
+    $this->checkParagraphInMode('field_paragraphs_0', 'edit');
+
+    // Set the edit mode to "Closed, show nested".
+    $settings = [
+      'edit_mode' => 'closed_expand_nested',
+    ];
+
+    $this->setParagraphsWidgetSettings('paragraphed_test', 'field_paragraphs', $settings);
+
+    // Create a second text paragraph.
+    $text_paragraph_2 = Paragraph::create([
+      'type' => 'text_paragraph',
+      'field_text' => [
+        'value' => 'Test text 2',
+        'format' => 'plain_text',
+      ],
+    ]);
+    $text_paragraph_2->save();
+
+    // Create a container paragraph referencing to the second text paragraph.
+    $paragraph_1 = Paragraph::create([
+      'type' => 'container_paragraph',
+      'field_paragraphs' => [$text_paragraph_2],
+    ]);
+    $paragraph_1->save();
+
+    // Add the container paragraph to the node.
+    $node->set('field_paragraphs', [$text_paragraph_1, $paragraph_1]);
+    $node->save();
+
+    $this->drupalGet('/node/' . $node->id() . '/edit');
+
+    // Check if the text paragraph is closed and the container is opened.
+    $this->checkParagraphInMode('field_paragraphs_0', 'closed');
+    $this->checkParagraphInMode('field_paragraphs_1', 'edit');
+
+    // Set the closed mode threshold to 3.
+    $settings = [
+      'closed_mode_threshold' => 3,
+    ];
+
+    $this->setParagraphsWidgetSettings('paragraphed_test', 'field_paragraphs', $settings);
+
+    $this->drupalGet('/node/' . $node->id() . '/edit');
+
+    // Check if the text paragraph is opened and the container is also opened.
+    $this->checkParagraphInMode('field_paragraphs_0', 'edit');
+    $this->checkParagraphInMode('field_paragraphs_1', 'edit');
+  }
+
+  /**
    * Asserts that a paragraph is in a particular mode.
    *
    * It does this indirectly by checking checking what buttons are available.
