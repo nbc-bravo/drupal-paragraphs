@@ -7,6 +7,6 @@ configure: paragraphs_library_item.settings
 dependencies:
   - paragraphs:paragraphs
   - drupal:views
-  - entity_usage:entity_usage (>= 8.x-2.0-alpha4)
+  - entity_usage:entity_usage
 test_dependencies:
   - entity_browser:entity_browser

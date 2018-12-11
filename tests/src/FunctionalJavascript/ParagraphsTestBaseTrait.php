@@ -51,8 +51,8 @@ trait ParagraphsTestBaseTrait {
   /**
    * Adds a Paragraphs field to a given entity type.
    *
-   * @param string $entity_type_name
-   *   Entity type name to be used.
+   * @param string $bundle
+   *   bundle to be used.
    * @param string $paragraphs_field_name
    *   Paragraphs field name to be used.
    * @param string $entity_type
@@ -62,7 +62,7 @@ trait ParagraphsTestBaseTrait {
    *   Defaults to 'paragraphs' for experimental widget.
    *   Use 'entity_reference_paragraphs' for classic widget.
    */
-  protected function addParagraphsField($entity_type_name, $paragraphs_field_name, $entity_type, $widget_type = 'paragraphs') {
+  protected function addParagraphsField($bundle, $paragraphs_field_name, $entity_type, $widget_type = 'paragraphs') {
     $field_storage = FieldStorageConfig::loadByName($entity_type, $paragraphs_field_name);
     if (!$field_storage) {
       // Add a paragraphs field.
@@ -79,7 +79,7 @@ trait ParagraphsTestBaseTrait {
     }
     $field = FieldConfig::create([
       'field_storage' => $field_storage,
-      'bundle' => $entity_type_name,
+      'bundle' => $bundle,
       'settings' => [
         'handler' => 'default:paragraph',
         'handler_settings' => ['target_bundles' => NULL],
@@ -87,11 +87,11 @@ trait ParagraphsTestBaseTrait {
     ]);
     $field->save();
 
-    $form_display = entity_get_form_display($entity_type, $entity_type_name, 'default')
+    $form_display = entity_get_form_display($entity_type, $bundle, 'default')
       ->setComponent($paragraphs_field_name, ['type' => $widget_type]);
     $form_display->save();
 
-    $view_display = entity_get_display($entity_type, $entity_type_name, 'default')
+    $view_display = entity_get_display($entity_type, $bundle, 'default')
       ->setComponent($paragraphs_field_name, ['type' => 'entity_reference_revisions_entity_view']);
     $view_display->save();
   }
