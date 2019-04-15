@@ -1,0 +1,17 @@
+id: d7_multifield
+label: Multifields
+migration_tags:
+  - Drupal 7
+  - Content
+deriver: Drupal\paragraphs\Plugin\migrate\D7MultifieldItemDeriver
+source:
+  plugin: d7_multifield_item
+process:
+  type: bundle
+destination:
+  plugin: entity_reference_revisions:paragraph
+migration_dependencies:
+  required:
+    - d7_multifield_type
+  optional:
+    - d7_field_instance
