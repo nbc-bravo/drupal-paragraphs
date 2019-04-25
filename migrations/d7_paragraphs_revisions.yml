@@ -1,0 +1,27 @@
+id: d7_paragraphs_revisions
+label: Paragraphs Revisions
+migration_tags:
+  - Drupal 7
+  - Paragraphs Revisions Content
+deriver: Drupal\paragraphs\Plugin\migrate\D7ParagraphsItemDeriver
+source:
+  plugin: d7_paragraphs_item_revision
+process:
+  id:
+    -
+      plugin: paragraphs_lookup
+      tags:
+        - Paragraphs Content
+      source: item_id
+    -
+      plugin: extract
+      index:
+        -
+          id
+  type: bundle
+destination:
+  plugin: entity_reference_revisions:paragraph
+  new_revisions: TRUE
+migration_dependencies:
+  required:
+    - d7_paragraphs

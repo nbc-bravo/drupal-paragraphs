@@ -1,0 +1,17 @@
+id: d7_paragraphs
+label: Paragraphs
+migration_tags:
+  - Drupal 7
+  - Paragraphs Content
+deriver: Drupal\paragraphs\Plugin\migrate\D7ParagraphsItemDeriver
+source:
+  plugin: d7_paragraphs_item
+process:
+  type: bundle
+destination:
+  plugin: entity_reference_revisions:paragraph
+migration_dependencies:
+  required:
+    - d7_paragraphs_type
+  optional:
+    - d7_field_instance

@@ -26,6 +26,56 @@ class Paragraphs extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
+  public function defineValueProcessPipeline(MigrationInterface $migration, $field_name, $data) {
+    $process = [
+      'plugin' => 'sub_process',
+      'source' => $field_name,
+      'process' => [
+        'target_id' => [
+          [
+            'plugin' => 'paragraphs_lookup',
+            'tags' => 'Paragraphs Content',
+            'source' => 'value',
+          ],
+          [
+            'plugin' => 'extract',
+            'index' => ['id'],
+          ],
+        ],
+        'target_revision_id' => [
+          [
+            'plugin' => 'paragraphs_lookup',
+            'tags' => [
+              'Paragraphs Revisions Content',
+              'Paragraphs Content',
+            ],
+            'tag_ids' => [
+              'Paragraphs Revisions Content' => ['revision_id'],
+              'Paragraphs Content' => ['value'],
+            ],
+            // D8.4 Does not like an empty source value, Even when using ids.
+            'source' => 'value',
+          ],
+          [
+            'plugin' => 'extract',
+            'index' => ['revision_id'],
+          ],
+        ],
+      ],
+    ];
+    $migration->setProcessOfProperty($field_name, $process);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function processFieldValues(MigrationInterface $migration, $field_name, $data) {
+    $this->processFieldValues($migration, $field_name, $data);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function processFieldWidget(MigrationInterface $migration) {
     // Backwards compatibility with D8.5.
     // @todo replace with parent::alterFieldWidgetMigration

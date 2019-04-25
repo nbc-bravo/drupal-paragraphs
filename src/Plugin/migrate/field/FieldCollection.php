@@ -23,10 +23,58 @@ use Drupal\migrate_drupal\Plugin\migrate\field\FieldPluginBase;
  */
 class FieldCollection extends FieldPluginBase {
 
-  /**
+  /*
    * Length of the 'field_' prefix that field collection prepends to bundles.
    */
   const FIELD_COLLECTION_PREFIX_LENGTH = 6;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defineValueProcessPipeline(MigrationInterface $migration, $field_name, $data) {
+    $process = [
+      'plugin' => 'sub_process',
+      'source' => $field_name,
+      'process' => [
+        'target_id' => [
+          [
+            'plugin' => 'paragraphs_lookup',
+            'tags' => 'Field Collection Content',
+            'source' => 'value',
+          ],
+          [
+            'plugin' => 'extract',
+            'index' => ['id'],
+          ],
+        ],
+        'target_revision_id' => [
+          [
+            'plugin' => 'paragraphs_lookup',
+            'tags' => [
+              'Field Collection Revisions Content',
+              'Field Collection Content',
+            ],
+            'tag_ids' => [
+              'Field Collection Revisions Content' => ['revision_id'],
+              'Field Collection Content' => ['value'],
+            ],
+          ],
+          [
+            'plugin' => 'extract',
+            'index' => ['revision_id'],
+          ],
+        ],
+      ],
+    ];
+    $migration->setProcessOfProperty($field_name, $process);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function processFieldValues(MigrationInterface $migration, $field_name, $data) {
+    $this->defineValueProcessPipeline($migration, $field_name, $data);
+  }
 
   /**
    * {@inheritdoc}
