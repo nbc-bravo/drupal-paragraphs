@@ -44,12 +44,15 @@ class FieldCollectionItem extends FieldableEntity {
         'archived',
       ])
       ->fields('fr', ['revision_id']);
+    $query->addField('fd', 'entity_type', 'parent_type');
+    $query->addField('fd', 'entity_id', 'parent_id');
     $query->innerJoin('field_collection_item_revision', 'fr', static::JOIN);
 
     // This configuration item may be set by a deriver to restrict the
     // bundles retrieved.
     if ($this->configuration['field_name']) {
       $query->condition('f.field_name', $this->configuration['field_name']);
+      $query->innerJoin('field_data_' . $this->configuration['field_name'], 'fd', 'fd.' . $this->configuration['field_name'] . '_value = f.item_id and fd.' . $this->configuration['field_name'] . '_revision_id = f.revision_id');
     }
     return $query;
   }
@@ -85,6 +88,8 @@ class FieldCollectionItem extends FieldableEntity {
       'revision_id' => $this->t('The field_collection_item revision id'),
       'bundle' => $this->t('The field_collection bundle'),
       'field_name' => $this->t('The field_collection field_name'),
+      'parent_type' => $this->t('The type of the parent entity'),
+      'parent_id' => $this->t('The identifier of the parent entity'),
     ];
 
     return $fields;

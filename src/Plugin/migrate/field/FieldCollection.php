@@ -67,6 +67,12 @@ class FieldCollection extends FieldPluginBase {
       ],
     ];
     $migration->setProcessOfProperty($field_name, $process);
+
+    // Add the respective field collection migration as a dependency.
+    $dependencies = $migration->getMigrationDependencies();
+    $migration_dependency = 'd7_field_collection:' . substr($field_name, static::FIELD_COLLECTION_PREFIX_LENGTH);
+    $dependencies['required'][] = $migration_dependency;
+    $migration->set('migration_dependencies', $dependencies);
   }
 
   /**

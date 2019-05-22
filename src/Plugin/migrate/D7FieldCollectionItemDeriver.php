@@ -125,6 +125,9 @@ class D7FieldCollectionItemDeriver extends DeriverBase implements ContainerDeriv
         $migration = \Drupal::service('plugin.manager.migration')
           ->createStubMigration($values);
         if (isset($fields[$fc_bundle])) {
+          $migration->setProcessOfProperty('parent_id', 'parent_id');
+          $migration->setProcessOfProperty('parent_type', 'parent_type');
+          $migration->setProcessOfProperty('parent_field_name', 'field_name');
 
           foreach ($fields[$fc_bundle] as $field_name => $info) {
             $field_type = $info['type'];
