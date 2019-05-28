@@ -70,16 +70,15 @@ class MultifieldLookup extends ProcessPluginBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    // @TODO Notice that this is not using migrate map tables. Is this ok?
     $paragraph_ids = $this->storage->getQuery()
       ->condition('parent_id', $row->getSourceProperty($this->configuration['entity_id_name']))
       ->condition('parent_field_name', $this->configuration['field_name'])
       ->execute();
 
-    foreach ($paragraph_ids as $paragraph_id) {
+    foreach ($paragraph_ids as $paragraph_revision_id => $paragraph_id) {
       $value[] = [
         'target_id' => $paragraph_id,
-        'target_revision_id' => $paragraph_id,
+        'target_revision_id' => $paragraph_revision_id,
       ];
     }
 
