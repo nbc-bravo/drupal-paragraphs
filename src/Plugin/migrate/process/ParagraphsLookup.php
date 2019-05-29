@@ -6,8 +6,11 @@ use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Plugin\migrate\process\MigrationLookup;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
+use Drupal\migrate\Plugin\MigratePluginManagerInterface;
 use Drupal\migrate\Plugin\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationPluginManagerInterface;
 use Drupal\migrate\Row;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class ParagraphsLookup.
@@ -17,6 +20,48 @@ use Drupal\migrate\Row;
  * )
  */
 class ParagraphsLookup extends MigrationLookup {
+
+  /**
+   * The process plugin manager.
+   *
+   * @var \Drupal\migrate\Plugin\MigratePluginManager
+   */
+  protected $processPluginManager;
+
+  /**
+   * Constructs a MigrationLookup object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
+   *   The Migration the plugin is being used in.
+   * @param \Drupal\migrate\Plugin\MigrationPluginManagerInterface $migration_plugin_manager
+   *   The Migration Plugin Manager Interface.
+   * @param \Drupal\migrate\Plugin\MigratePluginManagerInterface $process_plugin_manager
+   *   The process migration plugin manager.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, MigrationPluginManagerInterface $migration_plugin_manager, MigratePluginManagerInterface $process_plugin_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $migration_plugin_manager);
+    $this->processPluginManager = $process_plugin_manager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration = NULL) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $migration,
+      $container->get('plugin.manager.migration'),
+      $container->get('plugin.manager.migrate.process')
+    );
+  }
 
   /**
    * {@inheritdoc}
