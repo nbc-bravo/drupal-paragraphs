@@ -61,8 +61,6 @@ class FieldCollectionItem extends FieldableEntity {
    * {@inheritdoc}
    */
   public function prepareRow(Row $row) {
-    parent::prepareRow($row);
-
     // Remove field_ prefix for new bundle.
     $bundle = $row->getSourceProperty('field_name');
     $bundle = substr($bundle, FieldCollection::FIELD_COLLECTION_PREFIX_LENGTH);
@@ -77,6 +75,8 @@ class FieldCollectionItem extends FieldableEntity {
       $value = $this->getFieldValues('field_collection_item', $field_name, $item_id, $revision_id);
       $row->setSourceProperty($field_name, $value);
     }
+
+    parent::prepareRow($row);
   }
 
   /**
