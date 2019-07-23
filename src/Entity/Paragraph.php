@@ -139,18 +139,25 @@ class Paragraph extends ContentEntityBase implements ParagraphInterface {
    * {@inheritdoc}
    */
   public function label() {
-    $label = '';
-    if ($parent = $this->getParentEntity()) {
+    if (($parent = $this->getParentEntity()) && $parent->hasField($this->get('parent_field_name')->value)) {
       $parent_field = $this->get('parent_field_name')->value;
-      $values = $parent->{$parent_field};
-      foreach ($values as $key => $value) {
+      $field = $parent->get($parent_field);
+      $found = FALSE;
+      foreach ($field as $key => $value) {
         if ($value->entity->id() == $this->id()) {
-          $label = $parent->label() . ' > ' . $value->getFieldDefinition()->getLabel();
-        } else {
-          // A previous or draft revision or a deleted stale Paragraph.
-          $label = $parent->label() . ' > ' . $value->getFieldDefinition()->getLabel() . ' (previous revision)';
+          $found = TRUE;
+          break;
         }
       }
+      if ($found) {
+        $label = $parent->label() . ' > ' . $field->getFieldDefinition()->getLabel();
+      } else {
+        // A previous or draft revision or a deleted stale Paragraph.
+        $label = $parent->label() . ' > ' . $field->getFieldDefinition()->getLabel() . ' (previous revision)';
+      }
+    }
+    else {
+      $label = t('Orphaned @type: @summary', ['@summary' => Unicode::truncate(strip_tags($this->getSummary()), 50, FALSE, TRUE), '@type' => $this->get('type')->entity->label()]);
     }
     return $label;
   }

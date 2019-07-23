@@ -292,8 +292,8 @@ function paragraphs_update_8017() {
   $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
   $entity_type = $entity_definition_update_manager->getEntityType('paragraph');
   if ($metadata_keys = $entity_type->get('revision_metadata_keys')) {
-    if (is_array($metadata_keys) && isset($metadata_keys['revision_uid'])) {
-      unset($metadata_keys['revision_uid']);
+    if (is_array($metadata_keys) && isset($metadata_keys['revision_user'])) {
+      unset($metadata_keys['revision_user']);
       $metadata_keys['revision_default'] = 'revision_default';
       $entity_type->set('revision_metadata_keys', $metadata_keys);
       $entity_definition_update_manager->updateEntityType($entity_type);
@@ -398,6 +398,22 @@ function paragraphs_update_8020() {
     $config = $config_factory->getEditable($name);
     if (in_array($config->get('field_name'), ['uid', 'revision_uid'])) {
       $config->delete();
+    }
+  }
+}
+
+/**
+ * Update the revision metadata keys to remove revision uid (fixes 8017).
+ */
+function paragraphs_update_8021() {
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $entity_definition_update_manager->getEntityType('paragraph');
+  if ($metadata_keys = $entity_type->get('revision_metadata_keys')) {
+    if (is_array($metadata_keys) && isset($metadata_keys['revision_user'])) {
+      unset($metadata_keys['revision_user']);
+      $metadata_keys['revision_default'] = 'revision_default';
+      $entity_type->set('revision_metadata_keys', $metadata_keys);
+      $entity_definition_update_manager->updateEntityType($entity_type);
     }
   }
 }

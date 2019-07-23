@@ -3,7 +3,7 @@
 namespace Drupal\Tests\paragraphs\FunctionalJavascript;
 
 use Drupal\field_ui\Tests\FieldUiTestTrait;
-use Drupal\FunctionalJavascriptTests\JavascriptTestBase;
+use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 use Drupal\paragraphs\Tests\Classic\ParagraphsCoreVersionUiTestTrait;
 use Drupal\Tests\paragraphs\Traits\ParagraphsLastEntityQueryTrait;
 
@@ -12,7 +12,7 @@ use Drupal\Tests\paragraphs\Traits\ParagraphsLastEntityQueryTrait;
  *
  * @group paragraphs
  */
-class ParagraphsExperimentalClientsideButtonsTest extends JavascriptTestBase {
+class ParagraphsExperimentalClientsideButtonsTest extends WebDriverTestBase {
 
   use LoginAdminTrait;
   use FieldUiTestTrait;
@@ -86,10 +86,15 @@ class ParagraphsExperimentalClientsideButtonsTest extends JavascriptTestBase {
     // Add a Paragraph type.
     $this->addParagraphsType('text');
     // Add a text field to the text_paragraph type.
-    static::fieldUIAddNewField('admin/structure/paragraphs_type/text', 'text', 'Text', 'string', [], []);
+    $this->drupalGet('admin/structure/paragraphs_type/text/fields/add-field');
+    $page->selectFieldOption('new_storage_type', 'string');
+    $page->fillField('label', 'Text');
+    $this->assertSession()->waitForElementVisible('css', '#edit-name-machine-name-suffix .link');
+    $page->pressButton('Edit');
+    $page->fillField('field_name', 'text');
+    $page->pressButton('Save and continue');
     // Add a paragraphed test.
     $this->drupalGet('node/add/paragraphed_test');
-
     // Add 3 paragraphs.
     $page->pressButton('Add Paragraph');
     $assert_session->assertWaitOnAjaxRequest();
